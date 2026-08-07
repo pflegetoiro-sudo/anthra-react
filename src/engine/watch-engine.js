@@ -1,6 +1,5 @@
 /* ============================================================
    ANTHRA A-40 — 3D Watch Engine (complete, self-contained)
-   Exported: initWatch(bgCanvas, stageCanvas, getRefs)
    ============================================================ */
 
 const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
@@ -8,7 +7,6 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (t) => t * t * (3 - 2 * t);
 const easeOutExpo = (t) => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
 const TAU = Math.PI * 2, D2R = Math.PI / 180;
-
 
 const V = {
   sub: (a, b) => [a[0]-b[0],a[1]-b[1],a[2]-b[2]],
@@ -180,28 +178,28 @@ function project(q, st) {
 }
 function xnorm(n, st) { let q = rotZ(n,st.rz||0); q = rotY(q,st.ry||0); return rotX(q,st.rx||0); }
 
-// ── DIAL ARTWORK ──
 let DIALC = null, DIALKEY = '', DIAL_S = 560, DIAL_P = 0.02;
 let ctx = null;
+let _DPR = 1;
 
 function buildDialArt(pal) {
   const R = 0.845, RP = R+DIAL_P, S = DIAL_S, Wc = Math.ceil(2*RP*S);
   DIALC = document.createElement('canvas'); DIALC.width = DIALC.height = Wc;
   const live = ctx; ctx = DIALC.getContext('2d');
   ctx.setTransform(S,0,0,-S,Wc/2,Wc/2);
-  const DISP = getComputedStyle(document.body).getPropertyValue('--display') || "'Avenir Next', sans-serif";
+  const DISP = "'Avenir Next', sans-serif";
   const smoke = true;
   const g = ctx.createRadialGradient(-0.28,0.30,0.02,0,0,R*1.12);
   g.addColorStop(0, smoke?'#585F66':'#FBFCFD'); g.addColorStop(.45, smoke?'#393E44':'#E7EAED'); g.addColorStop(1, smoke?'#1F2429':'#C3C9CF');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fill();
-  const ETCH = smoke ? '255,255,255' : '0,0,0';
+  const ETCH = '255,255,255';
   ctx.lineWidth = 0.0055;
   for (let i=0;i<220;i++) { const t=i/220*TAU; ctx.strokeStyle='rgba('+ETCH+','+(0.035+0.035*Math.cos(t*3))+')'; ctx.beginPath(); ctx.moveTo(Math.cos(t)*0.10,Math.sin(t)*0.10); ctx.lineTo(Math.cos(t)*R,Math.sin(t)*R); ctx.stroke(); }
   ctx.lineWidth = 0.004;
   for (let r=0.16;r<R;r+=0.045) { ctx.strokeStyle='rgba('+ETCH+',.032)'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
   ctx.strokeStyle = 'rgba('+ETCH+',.16)'; ctx.lineWidth = 0.008;
   ctx.beginPath(); ctx.arc(0,0,R*0.90,0,TAU); ctx.stroke();
-  const FUR = smoke ? '240,244,248' : '22,26,30';
+  const FUR = '240,244,248';
   const ML = rgbs(pal.l), MM = rgbs(pal.m);
   for (let i=0;i<60;i++) { const t=i/60*TAU, maj=i%5===0; ctx.strokeStyle = maj ? 'rgba('+FUR+',.80)' : 'rgba('+FUR+',.34)'; ctx.lineWidth = maj ? 0.011 : 0.005; ctx.beginPath(); ctx.moveTo(Math.cos(t)*R*0.885,Math.sin(t)*R*0.885); ctx.lineTo(Math.cos(t)*R*(maj?0.825:0.850),Math.sin(t)*R*(maj?0.825:0.850)); ctx.stroke(); }
   ctx.save(); ctx.scale(1,-1);
@@ -221,8 +219,8 @@ function buildDialArt(pal) {
   ctx.strokeStyle='rgba(194,162,106,.95)'; ctx.lineWidth=0.016; ctx.beginPath(); ctx.arc(0,0,0.115,0,TAU); ctx.stroke();
   ctx.strokeStyle='rgba(205,186,150,.8)'; ctx.lineWidth=0.008; ctx.beginPath(); ctx.arc(0,0,0.062,0,TAU); ctx.stroke(); ctx.restore();
   ctx.strokeStyle='rgba('+FUR+',.36)'; ctx.lineWidth=0.008; ctx.beginPath(); ctx.arc(0,th,0.185,0,TAU); ctx.stroke();
-  ctx.fillStyle=smoke?'rgba(232,237,242,.95)':'rgba(28,32,36,.95)'; ctx.fillRect(0.53,-0.055,0.135,0.11);
-  ctx.save(); ctx.scale(1,-1); ctx.font='400 0.075px Inter, Helvetica, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=smoke?'#111':'#F2F4F6'; ctx.fillText('24',0.5975,-0.002); ctx.restore();
+  ctx.fillStyle='rgba(232,237,242,.95)'; ctx.fillRect(0.53,-0.055,0.135,0.11);
+  ctx.save(); ctx.scale(1,-1); ctx.font='400 0.075px Inter, Helvetica, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#111'; ctx.fillText('24',0.5975,-0.002); ctx.restore();
   const arc=ctx.createRadialGradient(0,0,R*0.62,0,0,R); arc.addColorStop(0,'rgba(96,88,190,0)'); arc.addColorStop(.78,'rgba(96,88,190,.045)'); arc.addColorStop(1,'rgba(120,96,215,.13)'); ctx.fillStyle=arc; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fill();
   ctx.save(); ctx.rotate(-0.62);
   const st1=ctx.createLinearGradient(0,R*0.10,0,R*0.46); st1.addColorStop(0,'rgba(255,255,255,0)'); st1.addColorStop(.5,'rgba(255,255,255,.085)'); st1.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=st1; ctx.fillRect(-R,R*0.10,2*R,R*0.36);
@@ -272,7 +270,6 @@ function drawBezelFace(st,pal,alpha) {
   ctx.restore();
   ctx.save(); ctx.transform(ux,uy,vx,vy,O[0],O[1]); ctx.globalAlpha=clamp(alpha*facing*1.5);
   for (let i=0;i<8;i++) { const a=i/8*TAU+Math.PI/8, sx=Math.cos(a)*0.915, sy=Math.sin(a)*0.915; const g=ctx.createLinearGradient(sx-0.03,sy-0.03,sx+0.03,sy+0.03); g.addColorStop(0,rgbs(pal.l)); g.addColorStop(1,rgbs(pal.d)); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,0.032,0,TAU); ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.lineWidth=0.008; ctx.beginPath(); ctx.moveTo(sx-0.021,sy-0.012); ctx.lineTo(sx+0.021,sy+0.012); ctx.stroke(); }
-  ctx.strokeStyle='rgba(0,0,0,.30)'; ctx.lineWidth=0.012; ctx.beginPath(); ctx.arc(0,0,0.845,0,TAU); ctx.stroke();
   ctx.restore();
 }
 
@@ -285,9 +282,7 @@ function drawHand(ang,len,w,ML,MM) {
 function drawCaseback(pal,R) {
   const g=ctx.createRadialGradient(-0.25,0.28,0.02,0,0,R); g.addColorStop(0,rgbs(pal.l)); g.addColorStop(.5,rgbs(pal.m)); g.addColorStop(1,rgbs(pal.d)); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fill();
   ctx.save(); ctx.beginPath(); ctx.arc(0,0,R*0.62,0,TAU); ctx.clip(); ctx.fillStyle='#0e0f11'; ctx.fillRect(-R,-R,2*R,2*R);
-  ctx.strokeStyle='rgba(200,208,216,.35)'; ctx.lineWidth=0.01;
-  for (let i=0;i<24;i++){const t=i/24*TAU; ctx.beginPath(); ctx.arc(Math.cos(t)*0.30,Math.sin(t)*0.30,0.13,0,TAU); ctx.stroke();}
-  ctx.fillStyle='rgba(194,162,106,.85)'; ctx.beginPath(); ctx.arc(0.06,-0.05,0.10,0,TAU); ctx.fill(); ctx.restore();
+  ctx.restore();
   ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=0.012; ctx.beginPath(); ctx.arc(0,0,R*0.62,0,TAU); ctx.stroke();
 }
 
@@ -312,12 +307,9 @@ function drawFaces(faces, st, pal, opt) {
   out.sort((a,b)=>a.z-b.z);
   const al=opt.alpha===undefined?1:opt.alpha;
   const paint=(o)=>{ const r=matRough(o.f); const P=o.q.map(p=>project(p,st)); ctx.beginPath(); ctx.moveTo(P[0][0],P[0][1]); for(let i=1;i<4;i++) ctx.lineTo(P[i][0],P[i][1]); ctx.closePath();
-    if (o.f.vn0) { const cA=shade(xnorm(o.f.vn0,st),pal,r,opt.tint,ax); const cB=shade(xnorm(o.f.vn1,st),pal,r,opt.tint,ax); const ax0=(P[0][0]+P[3][0])/2,ay0=(P[0][1]+P[3][1])/2,bx0=(P[1][0]+P[2][0])/2,by0=(P[1][1]+P[2][1])/2; let fill; if(Math.abs(ax0-bx0)+Math.abs(ay0-by0)<0.75) fill=rgbs(cA); else { const g=ctx.createLinearGradient(ax0,ay0,bx0,by0); g.addColorStop(0,rgbs(cA)); g.addColorStop(1,rgbs(cB)); fill=g; } ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=fill; ctx.lineWidth=0.6; ctx.stroke(); } else { const c=shade(o.n,pal,r,opt.tint,ax); ctx.fillStyle=rgbs(c); ctx.fill(); ctx.strokeStyle=rgbs(c); ctx.lineWidth=0.6; ctx.stroke(); } };
+    if (o.f.vn0) { const cA=shade(xnorm(o.f.vn0,st),pal,r,null,ax); const cB=shade(xnorm(o.f.vn1,st),pal,r,null,ax); const ax0=(P[0][0]+P[3][0])/2,ay0=(P[0][1]+P[3][1])/2,bx0=(P[1][0]+P[2][0])/2,by0=(P[1][1]+P[2][1])/2; let fill; if(Math.abs(ax0-bx0)+Math.abs(ay0-by0)<0.75) fill=rgbs(cA); else { const g=ctx.createLinearGradient(ax0,ay0,bx0,by0); g.addColorStop(0,rgbs(cA)); g.addColorStop(1,rgbs(cB)); fill=g; } ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=fill; ctx.lineWidth=0.6; ctx.stroke(); } else { const c=shade(o.n,pal,r,null,ax); ctx.fillStyle=rgbs(c); ctx.fill(); ctx.strokeStyle=rgbs(c); ctx.lineWidth=0.6; ctx.stroke(); } };
   ctx.save(); ctx.globalAlpha=al;
-  const wantDof=opt.dof && ('filter' in ctx);
-  const far=[], near=[]; for (const o of out) ((wantDof&&o.z<-1.15)?far:near).push(o);
-  if (far.length) { if (!DOFC||DOFC.width!==st.cvW||DOFC.height!==st.cvH) { DOFC=document.createElement('canvas'); DOFC.width=st.cvW; DOFC.height=st.cvH; } const main=ctx; ctx=DOFC.getContext('2d'); ctx.setTransform(st.dpr,0,0,st.dpr,0,0); ctx.clearRect(0,0,st.W,st.H); for (const o of far) paint(o); ctx=main; ctx.save(); ctx.filter='blur(2.6px)'; ctx.globalAlpha=al*0.92; ctx.drawImage(DOFC,0,0,st.W,st.H); ctx.restore(); }
-  for (const o of near) paint(o);
+  for (const o of out) paint(o);
   ctx.restore();
 }
 
@@ -333,14 +325,10 @@ function drawMovementFace(st,pal,alpha,spin) {
   ctx.save(); ctx.rotate(-0.5);
   for (let x=-R;x<R;x+=0.075) { const lg=ctx.createLinearGradient(x,0,x+0.075,0); lg.addColorStop(0,'rgba(255,255,255,.16)'); lg.addColorStop(1,'rgba(0,0,0,.13)'); ctx.fillStyle=lg; ctx.fillRect(x,-R,0.075,2*R); }
   ctx.restore();
-  ctx.save(); ctx.scale(1,-1); ctx.font='400 0.062px Inter, Helvetica, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='rgba(20,22,24,.8)';
-  for (let i=0;i<24;i++){const t=i/24*TAU-Math.PI/2; ctx.save(); ctx.translate(Math.cos(t)*R*0.88,-Math.sin(t)*R*0.88); ctx.rotate(t+Math.PI/2); ctx.fillText(String(i).padStart(2,'0'),0,0); ctx.restore();}
-  ctx.restore();
   ctx.save(); ctx.rotate(spin*0.35); ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R*0.92,-0.25,Math.PI+0.25); ctx.closePath();
-  const rg=ctx.createLinearGradient(-R,R,R,-R); rg.addColorStop(0,'#3b3f43'); rg.addColorStop(.5,'#202326'); rg.addColorStop(1,'#0e1012'); ctx.fillStyle=rg; ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=0.012; ctx.stroke(); ctx.restore();
+  const rg=ctx.createLinearGradient(-R,R,R,-R); rg.addColorStop(0,'#3b3f43'); rg.addColorStop(.5,'#202326'); rg.addColorStop(1,'#0e1012'); ctx.fillStyle=rg; ctx.fill(); ctx.restore();
   const wheels=[[0.30,-0.10,0.17],[0.05,-0.30,0.13],[-0.26,-0.16,0.115],[-0.10,0.18,0.10]];
-  for (const [wx,wy,wr] of wheels) { ctx.save(); ctx.translate(wx,wy); ctx.rotate(spin*(0.8+wr)); ctx.fillStyle='rgba(188,158,106,.92)'; ctx.beginPath(); ctx.arc(0,0,wr,0,TAU); ctx.fill(); ctx.strokeStyle='rgba(94,76,46,.55)'; ctx.lineWidth=0.008; for(let i=0;i<16;i++){const t=i/16*TAU; ctx.beginPath(); ctx.moveTo(Math.cos(t)*wr*0.55,Math.sin(t)*wr*0.55); ctx.lineTo(Math.cos(t)*wr,Math.sin(t)*wr); ctx.stroke();} ctx.fillStyle='rgba(32,26,16,.7)'; ctx.beginPath(); ctx.arc(0,0,wr*0.22,0,TAU); ctx.fill(); ctx.restore(); }
+  for (const w of wheels) { const wx=w[0],wy=w[1],wr=w[2]; ctx.save(); ctx.translate(wx,wy); ctx.rotate(spin*(0.8+wr)); ctx.fillStyle='rgba(188,158,106,.92)'; ctx.beginPath(); ctx.arc(0,0,wr,0,TAU); ctx.fill(); ctx.strokeStyle='rgba(94,76,46,.55)'; ctx.lineWidth=0.008; for(let i=0;i<16;i++){const t=i/16*TAU; ctx.beginPath(); ctx.moveTo(Math.cos(t)*wr*0.55,Math.sin(t)*wr*0.55); ctx.lineTo(Math.cos(t)*wr,Math.sin(t)*wr); ctx.stroke();} ctx.fillStyle='rgba(32,26,16,.7)'; ctx.beginPath(); ctx.arc(0,0,wr*0.22,0,TAU); ctx.fill(); ctx.restore(); }
   ctx.restore();
 }
 
@@ -360,12 +348,11 @@ const EXPLODE = { crystal:2.30, bezel:1.55, dial:0.95, mvt:0.05, back:-1.15, cas
 function watchState(o) { return {cx:o.cx,cy:o.cy,scale:o.scale,ry:o.ry,rx:o.rx,rz:o.rz||0,focus:o.focus||null,explodeFn:o.explodeFn||null}; }
 
 function drawWatch(o, canvases) {
-  const pal=o.pal, st=watchState(o), ex=o.explode||0, A=o.alpha===undefined?1:o.alpha;
-  if (A<=0.003 && ex<=0.003) return;
+  const pal=o.pal, st=watchState(o), ex=o.explode||0, A=Math.max(0.001,o.alpha===undefined?1:o.alpha);
   st.W=canvases.W; st.H=canvases.H; st.dpr=canvases.DPR; st.cvW=canvases.cvW; st.cvH=canvases.cvH;
   if (o.bracelet>0.004) { const bst=Object.assign({},st); if(ex>0.001) bst.explodeFn=q=>[q[0],q[1],q[2]-ex*1.9]; drawFaces(GEO.bracelet,bst,pal,{alpha:o.bracelet*A,dof:o.dof}); }
   const groups=[['back',EXPLODE.back],['case',EXPLODE.case],['lug',EXPLODE.lug],['crown',EXPLODE.crown],['bezel',EXPLODE.bezel]];
-  for (const [g,off] of groups) { const gs=Object.assign({},st); if(ex>0.001){const dz=off*ex*1.35; gs.explodeFn=q=>[q[0],q[1],q[2]+dz];} drawFaces(GEO.cases,gs,pal,{alpha:A,dof:o.dof,filter:f=>f.grp===g}); }
+  for (const g of groups) { const gs=Object.assign({},st); const off=g[1]; if(ex>0.001){const dz=off*ex*1.35; gs.explodeFn=q=>[q[0],q[1],q[2]+dz];} drawFaces(GEO.cases,gs,pal,{alpha:A,dof:o.dof,filter:f=>f.grp===g[0]}); }
   const bs=Object.assign({},st); if(ex>0.001){const dz=EXPLODE.back*ex*1.35; bs.explodeFn=q=>[q[0],q[1],q[2]+dz];} drawDial(bs,pal,{back:true,z:-CASE_T*0.66-0.001,alpha:A});
   if (ex>0.02) { const ms=Object.assign({},st); const dz=EXPLODE.mvt*ex*1.35; ms.explodeFn=q=>[q[0],q[1],q[2]+dz]; drawFaces(GEO.mvt,ms,pal,{alpha:ex*A}); drawMovementFace(ms,pal,ex*A,o.spin||0); }
   const ds=Object.assign({},st); if(ex>0.001){const dz=EXPLODE.dial*ex*1.35; ds.explodeFn=q=>[q[0],q[1],q[2]+dz];} drawDial(ds,pal,{alpha:A,spin:o.spin||0,hourAng:o.hourAng,minAng:o.minAng});
@@ -373,11 +360,10 @@ function drawWatch(o, canvases) {
   if (ex>0.02) { const cs=Object.assign({},st); const dz=EXPLODE.crystal*ex*1.35; cs.explodeFn=q=>[q[0],q[1],q[2]+dz]; drawGlassDisc(cs,0.845,DIAL_Z,ex*0.9*A); }
 }
 
-// ── BACKDROP ──
 let BGC=null,POOL=null,SHAD=null;
-function buildField(W,H,DPR) {
-  BGC=document.createElement('canvas'); BGC.width=W*DPR; BGC.height=H*DPR;
-  const g=BGC.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0);
+function buildField(W,H) {
+  BGC=document.createElement('canvas'); BGC.width=W*_DPR; BGC.height=H*_DPR;
+  const g=BGC.getContext('2d'); g.setTransform(_DPR,0,0,_DPR,0,0);
   g.fillStyle='rgb(19,19,22)'; g.fillRect(0,0,W,H);
   const gr=document.createElement('canvas'); gr.width=gr.height=180;
   const gg=gr.getContext('2d');
@@ -391,7 +377,6 @@ function buildField(W,H,DPR) {
 }
 function drawBackdrop(deep,W,H) { if(!BGC) buildField(W,H); ctx.drawImage(BGC,0,0,W,H); if(deep>0.004){ctx.fillStyle='rgba(0,0,0,'+(0.40*deep).toFixed(3)+')'; ctx.fillRect(0,0,W,H);} }
 
-// ── MAIN INIT ──
 const PLATES = [
   {id:'p0',label:'Cover',   pose:{x:.63,y:.52,s:.30,ry:-.38,rx:.10,rz:0}},
   {id:'p1',label:'Thesis',  pose:{x:.76,y:.52,s:.21,ry:-1.05,rx:.14,rz:0}},
@@ -410,14 +395,16 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
   const cv = stageCanvas, ctxW = cv.getContext('2d');
   const bgc = bgCanvas, ctxB = bgc.getContext('2d');
   let W=0,H=0,DPR=1;
-  let spin=0, tSec=0, sT=0, loaded=false, revealAt=Infinity;
+  let spin=0, tSec=0, sT=0, loaded=true, revealAt=performance.now();
   let metalKey='titanium';
   const M = () => METALS[metalKey];
   let last=performance.now(), lastActive=-1;
   let glideRAF=0, gliding=false, lastInput=0, lastYpx=0;
+  let rafId = null;
+  let running = true;
 
   function resize() {
-    DPR=Math.min(2,window.devicePixelRatio||1);
+    DPR=Math.min(2,window.devicePixelRatio||1); _DPR=DPR;
     W=window.innerWidth; H=window.innerHeight;
     for (const c of [cv,bgc]) { c.width=W*DPR; c.height=H*DPR; c.style.width=W+'px'; c.style.height=H+'px'; }
     ctxW.setTransform(DPR,0,0,DPR,0,0); ctxB.setTransform(DPR,0,0,DPR,0,0);
@@ -447,18 +434,18 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     if(e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault(); go(cur-1);}
   });
 
-  function boot() {
-    loaded=true; revealAt=performance.now();
+  // Boot after short delay for loader animation
+  setTimeout(() => {
+    loaded = true;
+    revealAt = performance.now();
     refs.onBoot?.();
-  }
+  }, 1400);
 
-  // Index nav clicks
   refs.getIndexLinks?.().forEach(a => {
     a.style.pointerEvents='auto';
     a.addEventListener('click', (e) => { e.preventDefault(); go(+a.dataset.go); });
   });
 
-  // Chip clicks
   refs.getChips?.().forEach(b => b.addEventListener('click', () => {
     metalKey = b.dataset.k;
     const m = METALS[metalKey];
@@ -466,24 +453,28 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     refs.onMetalChange?.(m);
   }));
 
-  // Reveal observer
   const io = new IntersectionObserver(es => {
     es.forEach(e => { if (e.isIntersecting) e.target.classList.add('seen'); });
   }, {threshold:.35});
   refs.getPlates?.().forEach(p => io.observe(p));
 
-  if (document.readyState==='complete') setTimeout(boot,1250);
-  else window.addEventListener('load', () => setTimeout(boot,1250));
-  setTimeout(() => { if(!loaded) boot(); }, 3200);
+  function frame(now) {
+    if (!running) return;
+    try {
+      tick(now);
+    } catch(e) {
+      console.error('ANTHRA engine error:', e.message, e.stack);
+      running = false;
+    }
+  }
 
-  function frame(now) { tick(now); requestAnimationFrame(frame); }
-
-  function tick(now) {
     const dt=Math.min(48,now-last); last=now; tSec+=dt; spin+=dt*0.0016;
     if (window.innerWidth!==W||window.innerHeight!==H) resize();
     if (!W||!H) return;
+
     const target=clamp(window.scrollY/H,0,N-1);
     sT+=(target-sT)*(1-Math.pow(0.0006,dt/1000));
+
     const calm=now-lastInput>240;
     const vel=Math.abs(window.scrollY-lastYpx); lastYpx=window.scrollY;
     const nearestY=Math.round(target)*H;
@@ -493,21 +484,32 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     const f=smooth(clamp(sT-i));
     const A=PLATES[i].pose, B=PLATES[i+1].pose;
     const L=(a,b)=>a+(b-a)*f;
+
     const deep=bell(sT,4,1), ex=bell(sT,4,0.85);
-    const rise=loaded?easeOutExpo(clamp((now-revealAt)/1500)):0;
+    const rise = loaded ? easeOutExpo(clamp((now-revealAt)/1500)) : 0.8;
+    const alphaVal = Math.max(0.5, rise); // FIX: always at least 0.5 alpha
 
     const wx=L(A.x,B.x)*W, wy=L(A.y,B.y)*H, ws=L(A.s,B.s)*Math.min(W,H);
+
+    // Backdrop
     ctx=ctxB; ctx.setTransform(DPR,0,0,DPR,0,0);
     drawBackdrop(deep,W,H);
     ctx.save(); ctx.globalAlpha=0.9;
     ctx.drawImage(POOL,wx-ws*3.4,wy-ws*3.4,ws*6.8,ws*6.8);
-    const shA=0.55*clamp(1.15-(ws/Math.min(W,H))*1.55)*(1-ex)*rise;
+    const shA=0.55*clamp(1.15-(ws/Math.min(W,H))*1.55)*(1-ex)*alphaVal;
     if (shA>0.012) { ctx.globalAlpha=shA; ctx.drawImage(SHAD,wx-ws*1.55,wy+ws*1.30-ws*0.23,ws*3.1,ws*0.46); }
     ctx.restore();
 
+    // Watch
     ctx=ctxW; ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H);
     const idle=Math.sin(tSec*0.00025)*0.05;
-    drawWatch({pal:M(),cx:wx,cy:wy,scale:ws*(0.6+0.4*rise),ry:L(A.ry,B.ry)+idle,rx:L(A.rx,B.rx),rz:L(A.rz,B.rz),explode:ex,bracelet:1,alpha:rise,spin,dof:ws>Math.min(W,H)*0.30}, {W,H,DPR,cvW:cv.width,cvH:cv.height});
+    drawWatch({
+      pal:M(),cx:wx,cy:wy,
+      scale:ws*(0.6+0.4*alphaVal),
+      ry:L(A.ry,B.ry)+idle,rx:L(A.rx,B.rx),rz:L(A.rz,B.rz),
+      explode:ex,bracelet:1,alpha:alphaVal,spin,
+      dof:ws>Math.min(W,H)*0.30
+    }, {W,H,DPR,cvW:cv.width,cvH:cv.height});
 
     const active=Math.round(target);
     if (active!==lastActive) {
@@ -516,9 +518,17 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     }
   }
 
-  resize();
   window.addEventListener('resize', resize);
-  requestAnimationFrame(frame);
 
-  return { go, setMetal: (k) => { metalKey=k; const m=METALS[k]; refs.onMetalChange?.(m); } };
+  return {
+    destroy: () => {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchmove', onTouch);
+      io.disconnect();
+    },
+    go,
+    setMetal: (k) => { metalKey=k; const m=METALS[k]; refs.onMetalChange?.(m); }
+  };
 }
