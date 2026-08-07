@@ -520,6 +520,8 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     }
   }
 
+  resize();
+  rafId = requestAnimationFrame(frame);
   window.addEventListener('resize', resize);
 
   return {
