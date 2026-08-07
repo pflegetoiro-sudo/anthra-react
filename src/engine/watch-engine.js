@@ -469,6 +469,7 @@ export function initWatch(bgCanvas, stageCanvas, refs) {
     }
   }
 
+  function tick(now) {
     const dt=Math.min(48,now-last); last=now; tSec+=dt; spin+=dt*0.0016;
     if (window.innerWidth!==W||window.innerHeight!==H) resize();
     if (!W||!H) return;
